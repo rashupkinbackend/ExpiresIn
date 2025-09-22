@@ -1,0 +1,8 @@
+# virtual invironment
+venv/
+
+# compiled folders and files
+*/**/__pycache__/
+
+# config
+.env
