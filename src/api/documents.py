@@ -33,6 +33,7 @@ async def upload_file(
     meta["owner_id"] = user_data["id"]
     meta["path"] = f"{user_id}/{uuid_name_file}"
 
+    # upload file to storage
     try:
         client.put_object(
             bucket_name, meta["path"], file.file, length=-1, part_size=10 * 1024 * 1024
@@ -65,6 +66,7 @@ async def get_info(request: Request, id: str) -> DocumentDto:
         if not document:
             raise HTTPException(404, "Document not found")
 
+        # only owner can get info
         if document.owner_id != user_id:
             raise HTTPException(403, "Insufficient rights")
 
@@ -73,6 +75,7 @@ async def get_info(request: Request, id: str) -> DocumentDto:
         return DocumentDto.model_validate(document, from_attributes=True)
 
 
+# get all documents by owner_id
 @router.get("/", dependencies=[Depends(check_jwt)])
 async def get_all(request: Request) -> list[DocumentDto]:
     token = get_tokens(request).get("access_token")
@@ -107,6 +110,7 @@ async def delete_file(request: Request, id: str):
         if not document:
             raise HTTPException(404, "Document not found")
 
+        # only owner can delete
         if document.owner_id != user_id:
             raise HTTPException(403, "Insufficient rights")
 
@@ -115,6 +119,7 @@ async def delete_file(request: Request, id: str):
         await session.execute(query)
         await session.commit()
 
+        # get file from storage
         try:
             client.remove_object(bucket_name, document.path)
         except S3Error:
@@ -136,6 +141,7 @@ async def download_file(id: str):
 
         new_downloads_count = document.downloads_count + 1
 
+        # check relevance file (expires_at and max_downloads)
         if (
             document.max_downloads <= new_downloads_count
             or document.expires_at
@@ -145,6 +151,7 @@ async def download_file(id: str):
 
         document.downloads_count = document.downloads_count + 1
 
+        # get file from storage
         try:
             obj = client.get_object(bucket_name, document.path)
         except S3Error:
