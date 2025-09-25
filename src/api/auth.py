@@ -20,7 +20,7 @@ ALGORITHM = "HS256"
 ENCODING = "utf-8"
 
 
-def get_tokens(user_data: dict):
+def gen_tokens(user_data: dict):
     access_token_data = user_data.copy()
     refresh_token_data = user_data.copy()
 
@@ -39,17 +39,34 @@ def get_tokens(user_data: dict):
     }
 
 
-async def check_and_get_new_tokens(request: Request):
-    body = await request.json()
-    token = body["token"]
+def check_jwt(request: Request):
+    tokens = get_tokens(request)
 
     try:
-        user_data = decode(token, jwt_secret_key, algorithms=[ALGORITHM])
-        return get_tokens(user_data)
+        decode(tokens.get("access_token"), jwt_secret_key, algorithms=[ALGORITHM])
+        decode(tokens.get("refresh_token"), jwt_secret_key, algorithms=[ALGORITHM])
+
+        return True
     except ExpiredSignatureError:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "Token's lifespan has expired"
         )
+
+
+def get_tokens(request: Request):
+    access_token = request.headers.get("Authorization")
+    refresh_token = request.cookies.get("refresh_token")
+
+    if access_token == None or refresh_token == None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Tokens weren't transferred")
+
+    access_token = access_token[7:]
+
+    return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+def get_data_from_token(token):
+    return decode(token, jwt_secret_key, algorithms=[ALGORITHM])
 
 
 def set_refresh_token(response: Response, token: str) -> Response:
@@ -79,7 +96,7 @@ async def register(data: AuthDto, response: Response) -> TokenDto:
         await session.flush()
         await session.commit()
 
-        tokens = get_tokens({"id": user.id})
+        tokens = gen_tokens({"id": user.id})
         response = set_refresh_token(response, tokens.get("refresh_token"))
 
         return {"access_token": tokens.get("access_token")}
@@ -100,18 +117,17 @@ async def login(data: AuthDto, response: Response) -> TokenDto:
 
         await session.commit()
 
-        tokens = get_tokens({"id": user.id})
+        tokens = gen_tokens({"id": user.id})
         response = set_refresh_token(response, tokens.get("refresh_token"))
 
         return {"access_token": tokens.get("access_token")}
 
 
-@router.post(
-    "/refresh",
-)
-async def refresh_token(
-    response: Response, tokens: TokenDto = Depends(check_and_get_new_tokens)
-) -> TokenDto:
-    response = set_refresh_token(response, tokens.get("refresh_token"))
+@router.post("/refresh", dependencies=[Depends(check_jwt)])
+async def refresh_token(response: Response, request: Request) -> TokenDto:
+    tokens = get_tokens(request)
+    new_tokens = get_data_from_token(tokens.get("access_token"))
+
+    response = set_refresh_token(response, new_tokens.get("refresh_token"))
 
     return {"access_token": tokens.get("access_token")}
