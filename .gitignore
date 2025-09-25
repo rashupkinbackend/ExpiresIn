@@ -6,3 +6,6 @@ venv/
 
 # config
 .env
+
+# logs
+*.log

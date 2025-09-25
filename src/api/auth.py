@@ -20,6 +20,7 @@ ALGORITHM = "HS256"
 ENCODING = "utf-8"
 
 
+# generate access and refresh token
 def gen_tokens(user_data: dict):
     access_token_data = user_data.copy()
     refresh_token_data = user_data.copy()
@@ -39,6 +40,7 @@ def gen_tokens(user_data: dict):
     }
 
 
+# validation tokens
 def check_jwt(request: Request):
     tokens = get_tokens(request)
 
@@ -53,6 +55,7 @@ def check_jwt(request: Request):
         )
 
 
+# get tokens (access token from Authorization header and refresh from cookies)
 def get_tokens(request: Request):
     access_token = request.headers.get("Authorization")
     refresh_token = request.cookies.get("refresh_token")
@@ -69,6 +72,7 @@ def get_data_from_token(token):
     return decode(token, jwt_secret_key, algorithms=[ALGORITHM])
 
 
+# set refresh token in cookies (httpOnly)
 def set_refresh_token(response: Response, token: str) -> Response:
     response.set_cookie(
         "refresh_token",
