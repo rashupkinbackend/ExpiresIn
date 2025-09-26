@@ -1,11 +1,13 @@
 from fastapi import FastAPI
-from src.api.auth import router as auth_router
-from src.api.documents import router as documents_router
 from src.logger.logger import logging
 from fastapi import Request, status, HTTPException
 from fastapi.responses import JSONResponse
 from minio import S3Error
 from sqlalchemy.exc import SQLAlchemyError
+from src.schedulers.scheduler import scheduler
+from src.database.db import logger as db_logger
+from src.storage.storage import logger as storage_logger
+from src.api.api import router
 
 logger = logging.getLogger("app")
 
@@ -32,7 +34,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
 # exceptions handlers
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
-    logger.error(f"Database error: {exc}")
+    db_logger.error(f"Database error: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Database error"},
@@ -50,14 +52,25 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(S3Error)
 async def minio_exception_handler(request: Request, exc: S3Error):
-    logger.error(f"MinIO error: {exc}")
+    storage_logger.error(f"MinIO error: {exc}")
     return JSONResponse(
         status_code=500,
         content={"detail": "Storage error"},
     )
 
 
-app.include_router(auth_router)
-app.include_router(documents_router)
+#  schedulers events
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown()
+
+
+@app.on_event("startup")
+def startup_event():
+    scheduler.start()
+
+
+app.include_router(router)
+
 
 logger.info("App was started successfully")
