@@ -59,7 +59,8 @@ async def upload_file(
         if meta.get("password"):
             password_hash = hashpw(meta.get("password").encode(ENCODING), SALT)
             meta["password_hash"] = password_hash.decode(ENCODING)
-            meta.pop("password")
+
+        meta.pop("password")
 
         document = DocumentTable(**meta)
         session.add(document)
@@ -158,14 +159,14 @@ async def download_file(id: str, data: DocumentDownloadDto | None = None):
         if not document:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
 
-        # check password if document has
-        if not data and document.password_hash:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect password")
+        if document.password_hash:
+            if not data or not data.password:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect password")
 
-        if not data.password or not checkpw(
-            data.password.encode(ENCODING), document.password_hash.encode(ENCODING)
-        ):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect password")
+            if not checkpw(
+                data.password.encode(ENCODING), document.password_hash.encode(ENCODING)
+            ):
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect password")
 
         new_downloads_count = document.downloads_count + 1
 

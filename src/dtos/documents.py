@@ -16,9 +16,10 @@ class DocumentDto(BaseModel):
     path: str
     max_downloads: int
     downloads_count: int
-    encrypted: bool
     expires_at: int
     created_at: datetime
+
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 
 class DocumentDownloadDto(BaseModel):
