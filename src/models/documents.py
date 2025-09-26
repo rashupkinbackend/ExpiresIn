@@ -28,6 +28,6 @@ class DocumentTable(Base):
     )
     max_downloads: Mapped[int] = mapped_column(server_default=text("1000"))
     downloads_count: Mapped[int] = mapped_column(server_default=text("0"))
-    encrypted: Mapped[bool] = mapped_column(server_default=text("False"))
+    password_hash: Mapped[str | None]
 
     owner: Mapped["UserTable"] = relationship(back_populates="documents")
