@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Annotated
 from datetime import datetime
 from uuid import UUID
 
@@ -6,7 +7,7 @@ from uuid import UUID
 class DocumentCreateDto(BaseModel):
     max_downloads: int | None = None
     expires_at: int | None = None
-    password: str | None = None
+    password: Annotated[str | None, Field(min_length=8, max_length=100)] = None
 
 
 class DocumentDto(BaseModel):
@@ -23,4 +24,4 @@ class DocumentDto(BaseModel):
 
 
 class DocumentDownloadDto(BaseModel):
-    password: str | None = None
+    password: Annotated[str | None, Field(min_length=8, max_length=100)] = None
