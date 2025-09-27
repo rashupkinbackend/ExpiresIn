@@ -32,14 +32,19 @@ async def upload_file(
     metadata: str = Form(),
     file: UploadFile = File(),
 ):
+    meta = dict()
+
+    # extracting metadata if has
+    if metadata:
+        meta = DocumentCreateDto(**json.loads(metadata))
+        meta = meta.dict()
+
     token = get_tokens(request).get("access_token")
     user_data = get_data_from_token(token)
 
     uuid_name_file = uuid.uuid4()
     user_id = user_data["id"]
 
-    meta = DocumentCreateDto(**json.loads(metadata))
-    meta = meta.dict()
     meta["filename"] = file.filename
     meta["owner_id"] = user_data["id"]
     meta["path"] = f"{user_id}/{uuid_name_file}"
@@ -59,8 +64,7 @@ async def upload_file(
         if meta.get("password"):
             password_hash = hashpw(meta.get("password").encode(ENCODING), SALT)
             meta["password_hash"] = password_hash.decode(ENCODING)
-
-        meta.pop("password")
+            meta.pop("password")
 
         document = DocumentTable(**meta)
         session.add(document)
@@ -159,6 +163,7 @@ async def download_file(id: str, data: DocumentDownloadDto | None = None):
         if not document:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Document not found")
 
+        # check password if document has
         if document.password_hash:
             if not data or not data.password:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Incorrect password")
