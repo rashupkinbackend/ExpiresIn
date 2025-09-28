@@ -5,7 +5,9 @@ The files will delete automaticly after expiring storage conditions.
 
 ## API
 
-### AUTH
+### 🗳 /AUTH
+
+##### REQUESTS
 
     - POST /auth/register
         - json:
@@ -20,12 +22,27 @@ The files will delete automaticly after expiring storage conditions.
             "password": "password123" *required
         }
 
-### DOCUMENTS
+##### RESPONSES
+
+    - POST /auth/register
+        - json:
+        {
+            "access_token": "token"
+        }
+    - POST /auth/login
+        - json:
+        {
+            "access_token": "token"
+        }
+
+### 📋 /DOCUMENTS
+
+##### REQUESTS
 
     - POST /documents/upload
         - form-data:
         {
-            "file": "file",
+            "file": "file", * required
             "metadata": "{
                 "max_downloads": count,
                 "expires_at": timestamp,
@@ -35,11 +52,55 @@ The files will delete automaticly after expiring storage conditions.
     - POST /documents/{id}/download
         - json:
         {
-            "password": "password for document"
+            "password": "password for document" * if document require the password
         }
     - GET /documents
     - GET /documents/{id}
     - DELETE /documents/{id}
+
+##### RESPONSES
+
+    - POST /documents/upload
+        - json:
+        {
+            "id": str(uuid)
+        }
+
+    - POST /documents/{id}/download
+        - file
+    - GET /documents
+        - json:
+        {
+            [
+                "id": str(uuid).
+                "owner_id": int,
+                "filename": str,
+                "path": str,
+                "expires_at": timestamp,
+                "max_downloads": int
+                "downloads_count": int
+            ]
+        }
+
+    - GET /documents/{id}
+        - json:
+        {
+
+            "id": str(uuid).
+            "owner_id": int,
+            "filename": str,
+            "path": str,
+            "expires_at": timestamp,
+            "max_downloads": int
+            "downloads_count": int
+
+        }
+
+    - DELETE /documents/{id}
+        - json:
+        {
+            "id": str(uuid)
+        }
 
 ## ✨ Functional
 
