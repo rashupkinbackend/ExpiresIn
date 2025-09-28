@@ -23,6 +23,7 @@ import os
 import datetime
 from bcrypt import hashpw, checkpw
 from src.api.auth import ENCODING, SALT
+from typing import Optional
 
 router = APIRouter(prefix="/documents")
 
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/documents")
 @router.post("/upload", dependencies=[Depends(check_jwt)])
 async def upload_file(
     request: Request,
-    metadata: str = Form(),
+    metadata: Optional[str] = Form(None),
     file: UploadFile = File(),
 ):
     meta = dict()
@@ -66,11 +67,11 @@ async def upload_file(
         )
 
     async with new_session() as session:
+        password = meta.pop("password", None)
         # hash password
-        if meta.get("password"):
-            password_hash = hashpw(meta.get("password").encode(ENCODING), SALT)
+        if password:
+            password_hash = hashpw(password.encode(ENCODING), SALT)
             meta["password_hash"] = password_hash.decode(ENCODING)
-            meta.pop("password")
 
         document = DocumentTable(**meta)
         session.add(document)
